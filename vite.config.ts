@@ -91,6 +91,11 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss(), staticRoutes(siteUrl)],
+    server: {
+      // The VS Code debug launch keeps Chrome's profile in .vscode/; Chrome locks those
+      // files, and watching them crashes the dev server on Windows (EBUSY).
+      watch: { ignored: ['**/.vscode/**'] },
+    },
     build: {
       target: 'es2022',
       cssMinify: true,
