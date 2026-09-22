@@ -4,11 +4,11 @@ Personal portfolio of **Harenthira Ravishangar**, Software Engineering Student a
 
 A dark, cinematic single-page experience with case-study pages for three academic software engineering projects:
 
-| Project | Assessment | Stack |
-|---|---|---|
-| **KMC Event Platform** | SOC main assessment (CSE5013) | ASP.NET MVC 5 · Web API 2 · Entity Framework 6 · SQL Server |
-| **Learnova AI** | Final-year project (CSE5015) | Flutter · Dart · Firebase · Gemini 2.5 Flash |
-| **Cupcake Management System** | OOP assessment (CSE4006) | Java 21 · Java Swing · MySQL · JDBC · [source](https://github.com/hari20050803-beep/Cupcake-Management-System) |
+| Project | Assessment | Stack | Source |
+|---|---|---|---|
+| **KMC Event Platform** | SOC main assessment (CSE5013) | ASP.NET MVC 5 · Web API 2 · Entity Framework 6 · SQL Server | [GitHub](https://github.com/hari20050803-beep/KMC-Event-Platform) |
+| **Learnova AI** | Final-year project (CSE5015) | Flutter · Dart · Firebase · Gemini 2.5 Flash | [GitHub](https://github.com/hari20050803-beep/Learnova-AI) |
+| **Cupcake Management System** | OOP assessment (CSE4006) | Java 21 · Java Swing · MySQL · JDBC | [GitHub](https://github.com/hari20050803-beep/Cupcake-Management-System) |
 
 ## Built with
 
