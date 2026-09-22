@@ -3,11 +3,9 @@ import type { Project } from './types.ts'
 /*
  * Every detail below was verified against each project's source code and documentation.
  *
- * GitHub: a project's button is shown only when its repository is public.
- *   - KMC Event Platform: the main-assessment solution is not on GitHub yet (the private
- *     KMC-Event-Platform repository holds a separate .NET 8 rebuild).
- *   - Learnova AI: the repository is private; set visibility to 'public' once it is public.
- *   - Cupcake Management System: public.
+ * GitHub: a project's button is shown only when its repository is public. All three are
+ * public. KMC-Event-Platform holds the main-assessment solution (MVC 5 + Web API 2); the
+ * separate .NET 8 rebuild lives in the private KMC-Event-Platform-DotNet8 repository.
  */
 export const projects: readonly Project[] = [
   {
@@ -104,6 +102,7 @@ export const projects: readonly Project[] = [
         { label: 'Tested API', detail: '127 MSTest tests covering auth, events, registrations, users and reports.' },
       ],
     },
+    repo: { url: 'https://github.com/hari20050803-beep/KMC-Event-Platform', visibility: 'public' },
   },
   {
     slug: 'learnova-ai',
@@ -193,7 +192,7 @@ export const projects: readonly Project[] = [
         { label: 'Release build', detail: 'Delivered as a signed Android release build (v1.0.0).' },
       ],
     },
-    repo: { url: 'https://github.com/hari20050803-beep/Learnova-AI', visibility: 'private' },
+    repo: { url: 'https://github.com/hari20050803-beep/Learnova-AI', visibility: 'public' },
   },
   {
     slug: 'cupcake-management-system',
