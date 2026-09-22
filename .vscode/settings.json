@@ -1,0 +1,8 @@
+{
+  // Tailwind v4 is configured in CSS (@theme, @utility, @custom-variant), which the
+  // built-in CSS language service does not know about.
+  "css.lint.unknownAtRules": "ignore",
+  "files.associations": { "*.css": "tailwindcss" },
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "search.exclude": { "**/dist": true, "**/node_modules": true }
+}
