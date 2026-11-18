@@ -1,149 +1,131 @@
-import { motion, useMotionValueEvent, useScroll, useSpring } from 'motion/react'
-import { useCallback, useRef, useState } from 'react'
-import { navigation } from '../../data/content'
-import { profile } from '../../data/profile'
-import { cn } from '../../lib/cn'
-import { useActiveSection } from '../../lib/hooks'
-import { EASE_OUT } from '../../lib/motion'
-import { Link } from '../../lib/navigation'
-import { useNavigation } from '../../lib/router'
-import { useLenis } from '../../lib/scroll'
-import { RollText, SwapArrow } from '../ui/Motifs'
-import { MobileMenu } from './MobileMenu'
+import { useEffect, useRef, useState } from 'react';
+import { navigation, profile } from '../../content/portfolio';
+import { CvLink, hasCv } from '../ui/CvLink';
+import { Icon } from '../ui/Icon';
+import { SocialLinks } from '../ui/SocialLinks';
 
-const sectionIds = ['top', ...navigation.map((item) => item.id), 'contact']
+const SECTION_IDS = navigation.map((item) => item.id);
 
 export function Header() {
-  const { route, ready } = useNavigation()
-  const lenis = useLenis()
-  const isHome = route.name === 'home'
-  const active = useActiveSection(isHome ? sectionIds : [])
+  const headerRef = useRef<HTMLElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const progressRef = useRef<HTMLSpanElement>(null);
+  const [open, setOpen] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
-  const [scrolled, setScrolled] = useState(false)
-  const [hidden, setHidden] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  // Header background, reading progress and the current section, once per frame.
+  useEffect(() => {
+    let frame = 0;
 
-  const { scrollY, scrollYProgress } = useScroll()
-  const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 30, mass: 0.3 })
+    const update = () => {
+      frame = 0;
+      const root = document.documentElement;
+      const scrollable = root.scrollHeight - window.innerHeight;
+      const progress = scrollable > 0 ? Math.min(window.scrollY / scrollable, 1) : 0;
 
-  useMotionValueEvent(scrollY, 'change', (y) => {
-    const previous = scrollY.getPrevious() ?? 0
-    setScrolled(y > 40)
-    if (y < 480) setHidden(false)
-    else if (y > previous + 4) setHidden(true)
-    else if (y < previous - 4) setHidden(false)
-  })
+      headerRef.current?.toggleAttribute('data-scrolled', window.scrollY > 24);
+      if (progressRef.current) progressRef.current.style.transform = `scaleX(${progress})`;
 
-  const openMenu = () => {
-    lenis?.stop()
-    document.documentElement.style.overflow = 'hidden'
-    setMenuOpen(true)
-  }
+      let current: string | null = null;
+      if (progress > 0.995) {
+        current = SECTION_IDS[SECTION_IDS.length - 1];
+      } else {
+        for (const id of SECTION_IDS) {
+          const section = document.getElementById(id);
+          if (section && section.getBoundingClientRect().top <= window.innerHeight * 0.35) {
+            current = id;
+          }
+        }
+      }
+      setActiveId(current);
+    };
 
-  const closeMenu = useCallback(
-    (restoreFocus = true) => {
-      document.documentElement.style.overflow = ''
-      lenis?.start()
-      setMenuOpen(false)
-      if (restoreFocus) menuButtonRef.current?.focus()
-    },
-    [lenis],
-  )
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+    };
+  }, []);
+
+  // Escape closes the phone menu and returns focus to the button that opened it.
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+        toggleRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open]);
 
   return (
-    <>
-      <motion.header
-        className="fixed inset-x-0 top-0 z-50"
-        initial={{ opacity: 0, y: -16 }}
-        animate={ready ? { opacity: 1, y: hidden && !menuOpen ? '-110%' : '0%' } : { opacity: 0, y: -16 }}
-        transition={{ duration: ready && !scrolled ? 1.1 : 0.6, ease: EASE_OUT, delay: ready && !scrolled ? 0.6 : 0 }}
-      >
-        <div className="shell">
-          <div
-            className={cn(
-              'mt-3 flex h-14 items-center justify-between rounded-full border pr-2 pl-5 transition-[background-color,border-color,backdrop-filter,box-shadow] duration-700 ease-cinematic lg:mt-4',
-              scrolled
-                ? 'border-white/[0.08] bg-ink-900/60 shadow-[0_20px_40px_-24px_rgb(0_0_0/0.8)] backdrop-blur-xl backdrop-saturate-150'
-                : 'border-transparent bg-transparent',
-            )}
+    <header
+      className="site-header"
+      ref={headerRef}
+      onBlur={(event) => {
+        // Tabbing out of the menu closes it.
+        if (open && event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) {
+          setOpen(false);
+        }
+      }}
+    >
+      <div className="site-header__inner">
+        <a className="brand" href="#top">
+          <span className="brand__stamp" aria-hidden="true">
+            {profile.initials}
+          </span>
+          <span className="brand__name">{profile.name}</span>
+          <span className="sr-comma">, back to top</span>
+        </a>
+
+        <div className="site-header__right">
+          <nav id="primary-nav" className="site-nav" data-open={open} aria-label="Primary">
+            <ul>
+              {navigation.map((item) => (
+                <li key={item.id}>
+                  <a
+                    href={`#${item.id}`}
+                    aria-current={activeId === item.id ? 'location' : undefined}
+                    onClick={() => setOpen(false)}
+                  >
+                    {item.label}
+                  </a>
+                </li>
+              ))}
+              {hasCv ? (
+                <li className="site-nav__cv">
+                  <CvLink />
+                </li>
+              ) : null}
+            </ul>
+          </nav>
+
+          <SocialLinks className="socials--header" />
+          <CvLink className="header-cv" compact />
+
+          <button
+            ref={toggleRef}
+            className="nav-toggle"
+            type="button"
+            aria-expanded={open}
+            aria-controls="primary-nav"
+            aria-label={open ? 'Close menu' : 'Open menu'}
+            onClick={() => setOpen((value) => !value)}
           >
-            <Link
-              to="/"
-              className="group flex items-center gap-2 text-[clamp(0.625rem,2.9vw,0.9375rem)] font-semibold tracking-[0.08em] whitespace-nowrap text-fog-50 min-[400px]:tracking-[0.14em] sm:tracking-[0.18em]"
-              aria-label={`${profile.name}, home`}
-            >
-              <RollText>{profile.name.toUpperCase()}</RollText>
-              <span aria-hidden="true" className="size-1.5 rounded-full bg-accent" />
-            </Link>
-
-            <nav aria-label="Primary" className="hidden lg:block">
-              <ul className="flex items-center gap-1">
-                {navigation.map((item) => {
-                  const isActive = active === item.id
-                  return (
-                    <li key={item.id}>
-                      <Link
-                        to={`/#${item.id}`}
-                        aria-current={isActive ? 'true' : undefined}
-                        className={cn(
-                          'group relative flex h-10 items-center px-4 text-sm transition-colors duration-500',
-                          isActive ? 'text-fog-50' : 'text-fog-400 hover:text-fog-50',
-                        )}
-                      >
-                        <RollText>{item.label}</RollText>
-                        {isActive && (
-                          <motion.span
-                            layoutId="nav-indicator"
-                            aria-hidden="true"
-                            className="absolute bottom-1.5 left-1/2 size-1 -translate-x-1/2 rounded-full bg-accent"
-                            transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                          />
-                        )}
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>
-            </nav>
-
-            <div className="flex items-center gap-2">
-              <Link
-                to="/#contact"
-                className="group hidden h-10 items-center gap-2.5 rounded-full border border-white/15 px-4 text-sm text-fog-100 transition-colors duration-500 hover:border-white/35 hover:bg-white/[0.04] sm:inline-flex"
-              >
-                <RollText>Let&rsquo;s talk</RollText>
-                <SwapArrow />
-              </Link>
-              <button
-                ref={menuButtonRef}
-                type="button"
-                onClick={openMenu}
-                aria-expanded={menuOpen}
-                aria-controls="mobile-menu"
-                className="group inline-flex h-10 items-center gap-3 rounded-full px-4 text-sm text-fog-100 lg:hidden"
-              >
-                <span className="max-[359px]:sr-only">
-                  <RollText>Menu</RollText>
-                </span>
-                <span aria-hidden="true" className="flex w-4 flex-col gap-[5px]">
-                  <span className="h-px w-full bg-current" />
-                  <span className="h-px w-2/3 bg-current transition-[width] duration-500 group-hover:w-full" />
-                </span>
-              </button>
-            </div>
-          </div>
+            <Icon name={open ? 'close' : 'menu'} />
+          </button>
         </div>
-        {isHome && (
-          <motion.div
-            aria-hidden="true"
-            className="absolute inset-x-0 top-0 h-px origin-left bg-gradient-to-r from-accent/0 via-accent/70 to-white/60"
-            style={{ scaleX: progress }}
-          />
-        )}
-      </motion.header>
-
-      <MobileMenu open={menuOpen} onClose={closeMenu} active={active} />
-    </>
-  )
+      </div>
+      <span className="site-header__progress" ref={progressRef} aria-hidden="true" />
+    </header>
+  );
 }

@@ -1,46 +1,66 @@
-import { MotionConfig } from 'motion/react'
-import { Cursor } from './components/layout/Cursor'
-import { Curtain } from './components/layout/Curtain'
-import { Footer } from './components/layout/Footer'
-import { Header } from './components/layout/Header'
-import { NavigationProvider } from './lib/navigation'
-import { useNavigation } from './lib/router'
-import { SmoothScroll } from './lib/smooth-scroll'
-import { HomePage } from './pages/HomePage'
-import { NotFoundPage } from './pages/NotFoundPage'
-import { ProjectPage } from './pages/ProjectPage'
+import { lazy, Suspense } from 'react';
+import { Hero } from './components/hero/Hero';
+import { Footer } from './components/layout/Footer';
+import { Header } from './components/layout/Header';
+import { SceneBackdrop } from './components/scene/SceneBackdrop';
+import { ErrorBoundary } from './components/ui/ErrorBoundary';
 
-function Routes() {
-  const { route } = useNavigation()
-  switch (route.name) {
-    case 'home':
-      return <HomePage />
-    case 'project':
-      return <ProjectPage key={route.slug} slug={route.slug} />
-    default:
-      return <NotFoundPage />
-  }
+// Everything under the hero is a separate chunk. In production it is already in
+// the prerendered HTML; this only delays the JavaScript that hydrates it.
+const BelowTheFold = lazy(() =>
+  import('./components/sections/BelowTheFold').catch((error: unknown) => {
+    // If the sections are already on the page, leave them readable and show a
+    // small notice, rather than replacing good content with an error message.
+    if (document.getElementById('about')) {
+      document.documentElement.dataset.sectionsFailed = 'true';
+      return new Promise<never>(() => undefined);
+    }
+    throw error;
+  }),
+);
+
+function SectionsLoading() {
+  return (
+    <div className="load-note" role="status">
+      Loading the rest of the page…
+    </div>
+  );
 }
 
-export default function App() {
+function SectionsFailed() {
   return (
-    <MotionConfig reducedMotion="user">
-      <SmoothScroll>
-        <NavigationProvider>
-          <a
-            href="#main"
-            className="sr-only z-[120] rounded-full bg-fog-50 px-5 py-3 text-sm font-medium text-ink-950 focus:not-sr-only focus:fixed focus:top-4 focus:left-4"
-          >
-            Skip to content
-          </a>
-          <Header />
-          <Routes />
-          <Footer />
-          <Curtain />
-          <Cursor />
-          <div className="grain" aria-hidden="true" />
-        </NavigationProvider>
-      </SmoothScroll>
-    </MotionConfig>
-  )
+    <div className="load-note" role="alert">
+      <p>This part of the page didn't load.</p>
+      <button className="btn btn--ghost" type="button" onClick={() => window.location.reload()}>
+        Reload the page
+      </button>
+    </div>
+  );
+}
+
+export function App() {
+  return (
+    <>
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
+      <SceneBackdrop />
+      <Header />
+      <main id="main" tabIndex={-1}>
+        <Hero />
+        <ErrorBoundary fallback={<SectionsFailed />}>
+          <Suspense fallback={<SectionsLoading />}>
+            <BelowTheFold />
+          </Suspense>
+        </ErrorBoundary>
+      </main>
+      <Footer />
+      <div className="load-toast" role="status">
+        <span>Part of this page didn't finish loading, so some buttons won't work.</span>
+        <button className="btn btn--ghost btn--small" type="button" onClick={() => window.location.reload()}>
+          Reload
+        </button>
+      </div>
+    </>
+  );
 }

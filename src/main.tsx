@@ -1,14 +1,23 @@
-import '@fontsource-variable/geist'
-import '@fontsource-variable/geist-mono'
-import '@fontsource/instrument-serif/400-italic.css'
-import 'lenis/dist/lenis.css'
-import './index.css'
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import App from './App.tsx'
+import { StrictMode } from 'react';
+import { createRoot, hydrateRoot } from 'react-dom/client';
+import { App } from './App';
+import { initMotion } from './lib/motion';
+import './styles/index.css';
 
-createRoot(document.getElementById('root')!).render(
+// Runs before hydration so prerendered sections never wait on React to appear.
+initMotion();
+
+const container = document.getElementById('root');
+if (!container) throw new Error('Missing #root element');
+
+const app = (
   <StrictMode>
     <App />
-  </StrictMode>,
-)
+  </StrictMode>
+);
+
+if (container.firstElementChild) {
+  hydrateRoot(container, app);
+} else {
+  createRoot(container).render(app);
+}

@@ -1,29 +1,134 @@
-import type { Variants } from 'motion/react'
+/**
+ * Scroll-triggered reveals and parallax, using plain DOM APIs.
+ *
+ * Mark an element with `data-reveal` to fade it in once, or `data-parallax="0.1"`
+ * to drift it with the scroll (positive values run ahead of the scroll, negative
+ * values lag behind it). Safe to call repeatedly: tracked elements are skipped.
+ */
 
-/** Long, soft deceleration used for most reveals. */
-export const EASE_OUT = [0.16, 1, 0.3, 1] as const
-/** Symmetric ease for curtains and large surface moves. */
-export const EASE_IN_OUT = [0.76, 0, 0.24, 1] as const
+const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
 
-export const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 28 },
-  visible: { opacity: 1, y: 0, transition: { duration: 1.1, ease: EASE_OUT } },
+let revealObserver: IntersectionObserver | undefined;
+let parallaxObserver: IntersectionObserver | undefined;
+const parallaxSeen = new WeakSet<Element>();
+const parallaxActive = new Set<HTMLElement>();
+let frame = 0;
+let scrollListening = false;
+let tiltListening = false;
+let tiltCard: HTMLElement | null = null;
+
+function prefersReducedMotion(): boolean {
+  return window.matchMedia(REDUCED_MOTION).matches;
 }
 
-export const fade: Variants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 1.2, ease: EASE_OUT } },
+function watchReveals(): void {
+  const targets = document.querySelectorAll<HTMLElement>('[data-reveal]:not(.is-in)');
+
+  if (!('IntersectionObserver' in window) || prefersReducedMotion()) {
+    targets.forEach((el) => el.classList.add('is-in'));
+    return;
+  }
+
+  revealObserver ??= new IntersectionObserver(
+    (entries, observer) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-in');
+          observer.unobserve(entry.target);
+        }
+      }
+    },
+    { rootMargin: '0px 0px -6% 0px', threshold: 0.04 },
+  );
+
+  targets.forEach((el) => revealObserver?.observe(el));
 }
 
-export const lineRise: Variants = {
-  hidden: { y: '112%' },
-  visible: { y: '0%', transition: { duration: 1.15, ease: EASE_OUT } },
+function applyParallax(): void {
+  frame = 0;
+  if (prefersReducedMotion()) {
+    parallaxActive.forEach((el) => {
+      el.style.transform = '';
+    });
+    return;
+  }
+
+  const viewportMiddle = window.innerHeight / 2;
+  parallaxActive.forEach((el) => {
+    const speed = Number(el.dataset.parallax) || 0;
+    // Measure the parent so the element's own transform can't feed back into it.
+    const box = (el.parentElement ?? el).getBoundingClientRect();
+    const offset = (box.top + box.height / 2 - viewportMiddle) * speed;
+    el.style.transform = `translate3d(0, ${offset.toFixed(1)}px, 0)`;
+  });
 }
 
-export const stagger = (staggerChildren = 0.08, delayChildren = 0): Variants => ({
-  hidden: {},
-  visible: { transition: { staggerChildren, delayChildren } },
-})
+function requestParallax(): void {
+  if (!frame) frame = requestAnimationFrame(applyParallax);
+}
 
-/** Standard in-view trigger: play once, slightly before the element is fully visible. */
-export const inView = { once: true, margin: '0px 0px -12% 0px' } as const
+function watchParallax(): void {
+  if (!('IntersectionObserver' in window) || prefersReducedMotion()) return;
+
+  parallaxObserver ??= new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        const el = entry.target as HTMLElement;
+        if (entry.isIntersecting) parallaxActive.add(el);
+        else parallaxActive.delete(el);
+      }
+      requestParallax();
+    },
+    { rootMargin: '20% 0px' },
+  );
+
+  document.querySelectorAll<HTMLElement>('[data-parallax]').forEach((el) => {
+    if (parallaxSeen.has(el)) return;
+    parallaxSeen.add(el);
+    parallaxObserver?.observe(el);
+  });
+
+  if (!scrollListening) {
+    scrollListening = true;
+    window.addEventListener('scroll', requestParallax, { passive: true });
+    window.addEventListener('resize', requestParallax, { passive: true });
+  }
+}
+
+function resetTilt(card: HTMLElement): void {
+  card.style.removeProperty('--tilt-x');
+  card.style.removeProperty('--tilt-y');
+}
+
+/** Passes the pointer position to cards marked `data-tilt`: their art leans and a soft glow follows. */
+function watchTilt(): void {
+  if (tiltListening || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  tiltListening = true;
+
+  document.addEventListener(
+    'pointermove',
+    (event) => {
+      if (prefersReducedMotion()) return;
+      const card = (event.target as Element | null)?.closest?.<HTMLElement>('[data-tilt]') ?? null;
+      if (tiltCard && tiltCard !== card) resetTilt(tiltCard);
+      tiltCard = card;
+      if (!card) return;
+
+      const box = card.getBoundingClientRect();
+      const x = (event.clientX - box.left) / box.width;
+      const y = (event.clientY - box.top) / box.height;
+      card.style.setProperty('--tilt-x', `${((0.5 - y) * 2.4).toFixed(2)}deg`);
+      card.style.setProperty('--tilt-y', `${((x - 0.5) * 3).toFixed(2)}deg`);
+      card.style.setProperty('--glow-x', `${(x * 100).toFixed(1)}%`);
+      card.style.setProperty('--glow-y', `${(y * 100).toFixed(1)}%`);
+    },
+    { passive: true },
+  );
+}
+
+export function initMotion(): void {
+  document.documentElement.setAttribute('data-motion', '');
+  watchReveals();
+  watchParallax();
+  watchTilt();
+}

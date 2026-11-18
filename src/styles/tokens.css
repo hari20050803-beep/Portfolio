@@ -1,0 +1,63 @@
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-latin.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Shippori Mincho';
+  src: url('/fonts/shippori-500.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Shippori Mincho';
+  src: url('/fonts/shippori-700.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Shippori Mincho';
+  src: url('/fonts/shippori-800.woff2') format('woff2');
+  font-weight: 800;
+  font-display: swap;
+}
+
+:root {
+  /* Surfaces */
+  --ink-0: #08080a;
+  --ink-1: #0d0c0d;
+  --ink-2: #141213;
+  --ink-3: #1c1919;
+  --panel: rgba(13, 12, 14, 0.82);
+  --panel-solid: rgba(13, 12, 14, 0.94);
+
+  /* Text */
+  --parchment: #f1eadf;
+  --text: #d6cfc3;
+  --muted: #aaa196;
+
+  /* Accents */
+  --steel: #a3b0bd;
+  --steel-dim: #5f6b78;
+  --crimson: #b3202a;
+  --crimson-lit: #ec5c62; /* for text and thin marks on dark surfaces */
+  --brass: #c6a56e;
+  --metal: linear-gradient(100deg, #5f6873 0%, #d8dde3 42%, #7c828c 62%, #c6a56e 100%);
+
+  /* Lines */
+  --line: rgba(226, 216, 200, 0.15);
+  --line-strong: rgba(226, 216, 200, 0.32);
+
+  /* Type */
+  --serif: 'Shippori Mincho', 'Noto Serif', Georgia, serif;
+  --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Layout */
+  --header-h: 68px;
+  --gutter: clamp(16px, 4vw, 40px);
+  --section-y: clamp(64px, 9vw, 120px);
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.75, 0.2, 1);
+}
